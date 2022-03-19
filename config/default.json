@@ -1,0 +1,4 @@
+{
+    "mongoURI":"mongodb://localhost/comp308-lab2",
+    "jwtSecret":"han"
+}
