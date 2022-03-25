@@ -3,13 +3,22 @@ import { useNavigate } from "react-router"
 import Form from "react-bootstrap/Form"
 import Button from "react-bootstrap/Button"
 import Modal from "react-bootstrap/Modal"
-import { Link, Navigate,Redirect } from "react-router-dom"
-import axios from "axios"
+import { Link, Navigate, Redirect } from "react-router-dom"
+import { gql, useMutation, useQuery } from "@apollo/client"
 import { useDispatch } from "react-redux"
 import { setLoginSuccess } from "../features/authSlice"
 
-function Login(props) {
-
+const LOGIN = gql`
+	mutation Login($email: String!, $password: String!) {
+		login(email: $email, password: $password) {
+			id
+			email
+			role
+			token
+		}
+	}
+`
+function Login() {
 	const navigate = useNavigate()
 
 	const [credential, setCredential] = useState({
@@ -18,64 +27,46 @@ function Login(props) {
 	})
 	const { email, password } = credential
 
-	const [login, setLogin] = useState(false)
+	const [hasWrongCredential, setHasWrongCredential] = useState(false)
 
-  const [hasWrongCredential, setHasWrongCredential] = useState(false)
-  
-  const [alert,setAlert] = useState()
+	const [alert, setAlert] = useState()
 
-  const [show,setShow] = useState(false)
+	const [show, setShow] = useState(false)
 	//Set dispatch for Redux
-  const dispatch = useDispatch()
-  
-  useEffect((props) => {
-    console.log(props)
-    if (props != null && props.alert != null) {
-      console.log(props)
-      setAlert(props.alert)
-      setShow(true)
-    }
-  }, [])
-  
-  const handleClose = () => setShow(false)
+	const dispatch = useDispatch()
+
+	useEffect((props) => {
+		console.log(props)
+		if (props != null && props.alert != null) {
+			console.log(props)
+			setAlert(props.alert)
+			setShow(true)
+		}
+	}, [])
+
+	const handleClose = () => setShow(false)
 
 	const onInputChange = (e) =>
 		setCredential({ ...credential, [e.target.name]: e.target.value })
 
+	const [
+		login,
+		{ data: loginData, loading: loginLoading, error: loginError }
+	] = useMutation(LOGIN, {
+		onCompleted: (loginData) => {
+			console.log(loginData)
+			dispatch(setLoginSuccess(loginData.login))
+
+				navigate("/home")
+
+		}
+	})
+
 	const handleLogin = async (e) => {
 		e.preventDefault()
-
-		const newUser = {
-			email,
-			password
-		}
-		try {
-			//Set request header
-			const config = {
-				headers: {
-					"Content-Type": "Application/json"
-				}
-			}
-			//Set request body
-			const body = JSON.stringify(newUser)
-			//Make request
-			const res = await axios.post(
-				`http://localhost:5000/api/auth/login`,
-				body,
-				config
-      )
-      console.log(res.data)
-			dispatch(setLoginSuccess(res.data))
-
-			setLogin(true)
-		} catch (error) {
-			console.log(error)
-		}
-	}
-
-	//Redirect if login
-	if (login) {
-		return <Navigate to="/home" />
+		login({
+			variables: { email, password }
+		})
 	}
 
 	//

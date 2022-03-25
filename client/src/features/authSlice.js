@@ -14,14 +14,14 @@ export const authSlice = createSlice({
 	reducers: {
 		setLoginSuccess: (state, action) => {
 			localStorage.setItem("token", action.payload.token)
-			localStorage.setItem("userId", action.payload.user._id)
-			localStorage.setItem("email", action.payload.user.email)
-			localStorage.setItem("role", action.payload.user.role)
+			localStorage.setItem("userId", action.payload.id)
+			localStorage.setItem("email", action.payload.email)
+			localStorage.setItem("role", action.payload.role)
 			state.value = {
 				token: action.payload.token,
-				userId: action.payload.user._id,
-				email: action.payload.user.email,
-				role: action.payload.user.role,
+				userId: action.payload.id,
+				email: action.payload.email,
+				role: action.payload.role,
 				isAuthenticated: true
 			}
 		},

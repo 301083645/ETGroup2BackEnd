@@ -10,7 +10,6 @@ function Home() {
 	return (
 		<div>
 			<h2> Courses Management System</h2>
-			<p>Please login</p>
 			
 		</div>
 	)

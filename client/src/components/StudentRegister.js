@@ -5,8 +5,55 @@ import Form from "react-bootstrap/Form"
 import Button from "react-bootstrap/Button"
 import { Link, Navigate, useNavigate } from "react-router-dom"
 import { setLoginSuccess } from "../features/authSlice"
+import { gql, useMutation, useQuery } from "@apollo/client"
+
+const REGISTER = gql`
+	mutation Register(
+		$email: String!
+		$password: String!
+		$role: String!
+		$firstName: String!
+		$lastName: String!
+		$studentNumber: String!
+		$address: String!
+		$city: String!
+		$phoneNumber: String!
+		$program: String!
+		$gitHub: String!
+		$linkedIn: String!
+	) {
+		register(
+			email: $email
+			password: $password
+			studentNumber: $studentNumber
+			role: $role
+			firstName: $firstName
+			lastName: $lastName
+			address: $address
+			city: $city
+			phoneNumber: $phoneNumber
+			program: $program
+			gitHub: $gitHub
+			linkedIn: $linkedIn
+		) {
+			id
+			email
+			role
+			token
+		}
+	}
+`
 
 function StudentRegister() {
+	const [
+		register,
+		{ data: registerData, loading: registerLoading, error: registerError }
+	] = useMutation(REGISTER, {
+		onCompleted: (registerData) => {
+			dispatch(setLoginSuccess(registerData.register))
+			navigate("/home")
+		}
+	})
 	const [user, setUser] = useState({
 		password: "",
 		email: "",
@@ -21,44 +68,20 @@ function StudentRegister() {
 		gitHub: "",
 		linkedIn: ""
 	})
-	const [login, setLogin] = useState(false)
+	const navigate = useNavigate()
 
 	//Set dispatch for Redux
 	const dispatch = useDispatch()
 
 	const onInputChange = (e) =>
 		setUser({ ...user, [e.target.name]: e.target.value })
-	const navigate = useNavigate()
 
 	const handleRegister = async (e) => {
 		e.preventDefault()
 
-		try {
-			//Set request header
-			const config = {
-				headers: {
-					"Content-Type": "Application/json"
-				}
-			}
-			//Set request body
-			const body = JSON.stringify(user)
-			//Make request
-			const res = await axios.post(
-				`http://localhost:5000/api/auth/register`,
-				body,
-				config
-			)
-			dispatch(setLoginSuccess(res.data))
-
-			navigate("/home")
-		} catch (error) {
-			console.log(error)
-		}
-	}
-
-	//Redirect if login
-	if (login) {
-		return <Navigate to="/home" />
+		register({
+			variables: user
+		})
 	}
 
 	return (

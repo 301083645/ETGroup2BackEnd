@@ -2,7 +2,9 @@ const graphql = require("graphql")
 const User = require("../model/user")
 const Course = require("../model/course")
 const Student = require("../model/student")
-const { findOne } = require("../model/user")
+const jwt = require("jsonwebtoken")
+const config = require("config")
+const bcrypt = require("bcryptjs/dist/bcrypt")
 const {
 	GraphQLObjectType,
 	GraphQLString,
@@ -20,7 +22,7 @@ const UserType = new GraphQLObjectType({
 			type: GraphQLString
 		},
 		email: { type: GraphQLString },
-		password: { type: GraphQLString },
+		token: { type: GraphQLString },
 		role: {
 			type: GraphQLString
 		}
@@ -139,7 +141,7 @@ const Mutation = new GraphQLObjectType({
 				let course = new Course({
 					courseCode: args.courseCode,
 					courseName: args.courseName,
-					sesemesterction: args.section,
+					section: args.section,
 					semester: args.semester
 				})
 				return course.save()
@@ -232,6 +234,115 @@ const Mutation = new GraphQLObjectType({
 				await course.save()
 
 				return result
+			}
+		},
+		register: {
+			type: UserType,
+			args: {
+				email: { type: GraphQLString },
+				password: { type: GraphQLString },
+				role: { type: GraphQLString },
+				studentNumber: { type: GraphQLString },
+				firstName: { type: GraphQLString },
+				lastName: { type: GraphQLString },
+				address: { type: GraphQLString },
+				city: { type: GraphQLString },
+				phoneNumber: { type: GraphQLString },
+				program: { type: GraphQLString },
+				gitHub: { type: GraphQLString },
+				linkedIn: { type: GraphQLString }
+			},
+			async resolve(parent, args) {
+				const userInDb = await User.findOne({ email: args.email })
+				if (userInDb != null) {
+					throw new Error("Email exists. Use another one or login")
+				}
+
+				try {
+					var user = new User()
+
+					//Save password
+					const salt = await bcrypt.genSalt(10)
+					password = await bcrypt.hash(args.password, salt)
+					user.password = password
+
+					//Save user email
+					user.email = args.email
+
+					//Save user
+					user.role = args.role
+
+					user = await user.save()
+
+					if (args.role === "user") {
+						var student = new Student()
+						student.studentNumber = args.studentNumber
+						student.userId = user._id
+						student.email = args.email
+						student.firstName = args.firstName
+						student.lastName = args.lastName
+						student.address = args.address
+						student.city = args.city
+						student.phoneNumber = args.phoneNumber
+						student.program = args.program
+						student.gitHub = args.gitHub
+						student.linkedIn = args.linkedIn
+
+						await student.save()
+					}
+
+					const payload = {
+						user: {
+							id: user._id,
+							email: user.email,
+							role: user.role
+						}
+					}
+					token = await jwt.sign(payload, config.get("jwtSecret"), {
+						expiresIn: 360000
+					})
+
+					user.token = token
+
+					return user
+				} catch (err) {
+					console.log(err)
+				}
+			}
+		},
+		login: {
+			type: UserType,
+			args: {
+				email: { type: GraphQLString },
+				password: { type: GraphQLString }
+			},
+			async resolve(parent, args) {
+				let user = await User.findOne({ email: args.email })
+
+				if (user == null) {
+					throw new Error("Invalid credentials")
+				}
+
+				const isMatch = await bcrypt.compare(args.password, user.password)
+				if (!isMatch) {
+					throw new Error("Invalid credentials")
+				}
+
+				const payload = {
+					user: {
+						id: user.id,
+						email: user.email,
+						role: user.role
+					}
+				}
+
+				token = await jwt.sign(payload, config.get("jwtSecret"), {
+					expiresIn: 360000
+				})
+
+				user.token = token
+
+				return user
 			}
 		}
 	}

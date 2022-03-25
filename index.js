@@ -1,7 +1,6 @@
 const express = require("express")
 const { graphqlHTTP } = require("express-graphql")
 const schema = require("./schema/schema")
-const { connect } = require("mongoose")
 const connectDB = require("./config/db")
 var cors = require("cors")
 const {authenticate} = require("./middleware/auth")
@@ -24,16 +23,6 @@ app.use(function (req, res, next) {
 app.use(cors())
 
 app.use(
-	"/graphql/private",
-	authenticate,
-	graphqlHTTP(req=>({
-		schema,
-		graphiql: true,
-		context: { user: req.user }
-	}))
-)
-
-app.use(
 	"/graphql/public",
 	graphqlHTTP((req) => ({
 		schema,
@@ -44,8 +33,6 @@ app.use(
 app.get("/", (req, res) => {
 	res.send("API running")
 })
-
-app.use("/api/auth", require("./routes/auth"))
 
 
 const PORT = process.env.PORT || 5000

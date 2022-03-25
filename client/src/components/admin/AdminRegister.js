@@ -5,12 +5,68 @@ import Form from "react-bootstrap/Form"
 import Button from "react-bootstrap/Button"
 import { Link, Navigate, useNavigate } from "react-router-dom"
 import { setLoginSuccess } from "../../features/authSlice"
+import { gql, useMutation, useQuery } from "@apollo/client"
+
+const REGISTER = gql`
+	mutation Register(
+		$email: String!
+		$password: String!
+		$role: String!
+		$firstName: String!
+		$lastName: String!
+		$studentNumber: String!
+		$address: String!
+		$city: String!
+		$phoneNumber: String!
+		$program: String!
+		$gitHub: String!
+		$linkedIn: String!
+	) {
+		register(
+			email: $email
+			password: $password
+			studentNumber: $studentNumber
+			role: $role
+			firstName: $firstName
+			lastName: $lastName
+			address: $address
+			city: $city
+			phoneNumber: $phoneNumber
+			program: $program
+			gitHub: $gitHub
+			linkedIn: $linkedIn
+		) {
+			id
+			email
+			role
+			token
+		}
+	}
+`
 
 function AdminRegister() {
+	const [
+		register,
+		{ data: registerData, loading: registerLoading, error: registerError }
+	] = useMutation(REGISTER, {
+		onCompleted: (registerData) => {
+			dispatch(setLoginSuccess(registerData.register))
+			navigate("/home")
+		}
+	})
 	const [user, setUser] = useState({
 		password: "",
 		email: "",
-		role: "admin"
+		role: "admin",
+		studentNumber: "",
+		firstName: "",
+		lastName: "",
+		address: "",
+		city: "",
+		phoneNumber: "",
+		program: "",
+		gitHub: "",
+		linkedIn: ""
 	})
 
 	const { email, password, role } = user
@@ -26,27 +82,9 @@ function AdminRegister() {
 	const handleRegister = async (e) => {
 		e.preventDefault()
 
-		try {
-			//Set request header
-			const config = {
-				headers: {
-					"Content-Type": "Application/json"
-				}
-			}
-			//Set request body
-			const body = JSON.stringify(user)
-			//Make request
-			const res = await axios.post(
-				`http://localhost:5000/api/auth/register`,
-				body,
-				config
-			)
-			dispatch(setLoginSuccess(res.data))
-
-			navigate("/home")
-		} catch (error) {
-			console.log(error)
-		}
+		register({
+			variables: user
+		})
 	}
 
 	return (
