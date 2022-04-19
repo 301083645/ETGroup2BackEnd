@@ -23,10 +23,6 @@
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/hlutony/student_management_react_graphql_express.git"
-  },
-  "bugs": {
-    "url": "https://github.com/hlutony/student_management_react_graphql_express/issues"
-  },
-  "homepage": "https://github.com/hlutony/student_management_react_graphql_express#readme"
+    "url": "git+https://github.com/301083645/ETGroup2BackEnd.git"
+  }
 }

@@ -177,22 +177,35 @@ const Mutation = new GraphQLObjectType({
 			}
 		},
 		
-		createVitalSign: {
+		createAndAssignVitalSign: {
 			type: VitalSignType,
 			args: {
 				bodyTemp: { type: GraphQLString },
 				heartRate: { type: GraphQLString },
 				bloodPressure: { type: GraphQLString },
-				respiratoryRate: { type: GraphQLString }
+				respiratoryRate: { type: GraphQLString },
+				patientId: { type: new GraphQLNonNull(GraphQLString)}
 			},
-			resolve(parent, args) {
+			async resolve(parent, args) {
 				let vitalSign = new VitalSign({
 					bodyTemp: args.bodyTemp,
 					heartRate: args.heartRate,
 					bloodPressure: args.bloodPressure,
 					respiratoryRate: args.respiratoryRate
 				})
-				return vitalSign.save()
+				await vitalSign.save()
+
+				patientId = args.patientId
+				const patient = await Patient.findOne({ patientId })
+				patient.vitalSigns.push({ vitalSign })
+				await patient.save()
+
+				const id = patient._id
+				await vitalSign.patients.push(patient)
+				result = await vitalSign.save()
+				
+				return result
+
 			}
 		},
 		updateVitalSign: {
@@ -268,25 +281,7 @@ const Mutation = new GraphQLObjectType({
 				return patient
 			}
 		},
-		assignVitalSign: {
-			type: PatientType,
-			args: {
-				vitalSignId: { type: new GraphQLNonNull(GraphQLString) },
-				patientId: { type: new GraphQLNonNull(GraphQLString) }
-			},
-			async resolve(parent, args) {
-				const patient = await Patient.findOne({ userId: args.patientId })
-				patient.vitalSigns.push({ vitalSign: args.vitalSignId })
-				result = await patient.save()
-
-				const id = patient._id
-				const vitalSign = await VitalSign.findById(args.vitalSignId)
-				vitalSign.patients.push({ patient: id })
-				await vitalSign.save()
-
-				return result
-			}
-		},
+		
 		register: {
 			type: UserType,
 			args: {
