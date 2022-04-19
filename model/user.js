@@ -11,7 +11,7 @@ const UserSchema = new mongoose.Schema({
 		type: String,
 		required: true,
 		enum: {
-			values: ["admin", "user"],
+			values: ["nurse", "patient"],
 			message: "{VALUE} is not supported"
 		}
 	}

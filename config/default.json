@@ -1,4 +1,4 @@
 {
-    "mongoURI":"mongodb://localhost/comp308-lab2",
-    "jwtSecret":"han"
+    "mongoURI":"mongodb://localhost/COMP308-GroupProject",
+    "jwtSecret":"jay"
 }

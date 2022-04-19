@@ -1,7 +1,7 @@
-const Course = require("../model/course")
+const VitalSign = require("../model/vitalSign")
 const config = require("config")
 const jwt = require("jsonwebtoken")
-const Student = require("../model/student")
+const Patient = require("../model/patient")
 
 const authenticate = (req, res, next) => {
 	var token
@@ -45,7 +45,7 @@ const authorizeAdmin = (req, res, next) => {
 	try {
 		const decoded = jwt.verify(token, config.get("jwtSecret"))
 		console.log(decoded.user.role)
-		if (decoded.user.role != "admin") {
+		if (decoded.user.role != "nurse") {
 			return res.status(403).json({ msg: "User has no authorization" })
 		}
 
@@ -55,7 +55,7 @@ const authorizeAdmin = (req, res, next) => {
 	}
 }
 
-const authorizeStudent = async (req, res, next) => {
+const authorizePatient = async (req, res, next) => {
 	var token
 	if (
 		req.headers.authorization &&
@@ -71,11 +71,11 @@ const authorizeStudent = async (req, res, next) => {
 	try {
 		const decoded = jwt.verify(token, config.get("jwtSecret"))
 		console.log(decoded.user.role)
-		if (decoded.user.role != "user") {
+		if (decoded.user.role != "patient") {
 			return res.status(403).json({ msg: "User has no authorization" })
 		}
-		const student = await Student.findOne({ userId: decoded.user.id })
-		req.user.studentId = student._id
+		const patient = await Patient.findOne({ userId: decoded.user.id })
+		req.user.patientId = patient._id
 
 		next()
 	} catch (err) {
@@ -83,4 +83,4 @@ const authorizeStudent = async (req, res, next) => {
 	}
 }
 
-module.exports = { authenticate, authorizeAdmin, authorizeStudent }
+module.exports = { authenticate, authorizeAdmin, authorizePatient }

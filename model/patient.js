@@ -2,8 +2,8 @@
 
 const mongoose = require("mongoose")
 
-const StudentSchema = new mongoose.Schema({
-	studentNumber: {
+const PatientSchema = new mongoose.Schema({
+	patientNumber: {
 		type: String,
 		required: true
 	},
@@ -31,27 +31,28 @@ const StudentSchema = new mongoose.Schema({
 	phoneNumber: {
 		type: String
 	},
-	program: {
-		type: String
-	},
-	gitHub: {
-		type: String
-	},
-	linkedIn: {
-		type: String
-	},
-	courses: [
+	
+	vitalSigns: [
 		{
-			course: {
+			vitalSign: {
 				type: mongoose.Schema.Types.ObjectId,
-				ref: "course"
+				ref: "vitalSign"
+			}
+		}
+	],
+
+	messages: [
+		{
+			message: {
+				type: mongoose.Schema.Types.ObjectId,
+				ref: "message"
 			}
 		}
 	]
 })
 
 // Set the 'fullname' virtual property
-StudentSchema.virtual("fullName")
+PatientSchema.virtual("fullName")
 	.get(function () {
 		return this.firstName + " " + this.lastName
 	})
@@ -61,6 +62,6 @@ StudentSchema.virtual("fullName")
 		this.lastName = splitName[1] || ""
 	})
 
-const Student = mongoose.model("student", StudentSchema)
+const Patient = mongoose.model("patient", PatientSchema)
 
-module.exports = Student
+module.exports = Patient

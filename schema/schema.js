@@ -1,7 +1,8 @@
 const graphql = require("graphql")
 const User = require("../model/user")
-const Course = require("../model/course")
-const Student = require("../model/student")
+const VitalSign = require("../model/vitalSign")
+const Patient = require("../model/patient")
+const Message = require("../model/message")
 const jwt = require("jsonwebtoken")
 const config = require("config")
 const bcrypt = require("bcryptjs/dist/bcrypt")
@@ -12,8 +13,19 @@ const {
 	GraphQLID,
 	GraphQLInt,
 	GraphQLList,
-	GraphQLNonNull
+	GraphQLNonNull,
+	GraphQLFloat
 } = graphql
+
+const MessageType = new GraphQLObjectType({
+	name:"Message",
+	fields:()=> ({
+		id:{
+			type:GraphQLString
+		},
+		description:{ type : GraphQLString}
+	})
+})
 
 const UserType = new GraphQLObjectType({
 	name: "User",
@@ -29,59 +41,69 @@ const UserType = new GraphQLObjectType({
 	})
 })
 
-const StudentType = new GraphQLObjectType({
-	name: "Student",
+const PatientType = new GraphQLObjectType({
+	name: "Patient",
 	fields: () => ({
 		id: {
 			type: GraphQLString
 		},
-		studentNumber: { type: GraphQLString },
+		patientNumber: { type: GraphQLString },
 		email: { type: GraphQLString },
 		firstName: { type: GraphQLString },
 		lastName: { type: GraphQLString },
 		address: { type: GraphQLString },
 		city: { type: GraphQLString },
 		phoneNumber: { type: GraphQLString },
-		program: { type: GraphQLString },
-		gitHub: { type: GraphQLString },
-		linkedIn: { type: GraphQLString },
-		courses: {
-			type: new GraphQLList(CourseType),
+		vitalSigns: {
+			type: new GraphQLList(VitalSignType),
 			async resolve(parent, args) {
-				var courses = []
-				for (const courseInfo of parent.courses) {
-					const course = await Course.findById(courseInfo.course)
-					if (course != null) {
-						courses.push(course)
+				var vitalSigns = []
+				for (const vitalSignInfo of parent.vitalSigns) {
+					const vitalSign = await VitalSign.findById(vitalSignInfo.vitalSign)
+					if (vitalSign != null) {
+						vitalSigns.push(vitalSign)
 					}
 				}
-				return courses
+				return vitalSigns
+			}
+		},
+		messages:{
+			type: new GraphQLList(VitalSignType),
+			async resolve(parent, args) {
+				var messages = []
+				for (const messageInfo of parent.messages) {
+					const message = await Message.findById(messageInfo.message)
+					if (message != null) {
+						messages.push(message)
+					}
+				}
+				return messages
 			}
 		}
 	})
 })
 
-const CourseType = new GraphQLObjectType({
-	name: "Course",
+const VitalSignType = new GraphQLObjectType({
+	name: "VitalSign",
 	fields: () => ({
 		id: {
 			type: GraphQLString
 		},
-		courseCode: { type: GraphQLString },
-		courseName: { type: GraphQLString },
-		section: { type: GraphQLString },
-		semester: { type: GraphQLString },
-		students: {
-			type: new GraphQLList(StudentType),
+		bodyTemp: { type: GraphQLString },
+		heartRate: { type: GraphQLString },
+		bloodPressure: { type: GraphQLString },
+		respiratoryRate: { type: GraphQLString },
+		patients: {
+			type: new GraphQLList(PatientType),
 			async resolve(parent, args) {
-				var students = []
-				for (const studentInfo of parent.students) {
-					const student = await Student.findById(studentInfo.student)
-					if (student != null) {
-						students.push(student)
+				var patients = []
+				for (const patientInfo of parent.patients) {
+					const patient = await Patient.findById(patientInfo.patient)
+					if (patient != null) {
+						patients.push(patient)
 					}
 				}
-				return students
+				return patients
 			}
 		}
 	})
@@ -90,30 +112,43 @@ const CourseType = new GraphQLObjectType({
 const RootQuery = new GraphQLObjectType({
 	name: "RootQueryType",
 	fields: () => ({
-		student: {
-			type: StudentType,
+		patient: {
+			type: PatientType,
 			args: { id: { type: GraphQLString } },
 			resolve(parent, args) {
-				return Student.findOne({ userId: args.id })
+				return Patient.findOne({ userId: args.id })
 			}
 		},
-		course: {
-			type: CourseType,
+		message:{
+			type: MessageType,
+			args:{id:{type: GraphQLString}},
+			resolve(parent,args){
+				return Message.findById(args.id)
+			}
+		},
+		vitalSign: {
+			type: VitalSignType,
 			args: { id: { type: GraphQLString } },
 			resolve(parent, args) {
-				return Course.findById(args.id)
+				return VitalSign.findById(args.id)
 			}
 		},
-		courses: {
-			type: new GraphQLList(CourseType),
+		vitalSigns: {
+			type: new GraphQLList(VitalSignType),
 			resolve(parent, args) {
-				return Course.find()
+				return VitalSign.find()
 			}
 		},
-		students: {
-			type: new GraphQLList(StudentType),
+		messages:{
+			type: new GraphQLList(MessageType),
+			resolve(parent,args){
+				return Message.find()
+			}
+		},
+		patients: {
+			type: new GraphQLList(PatientType),
 			resolve(parent, args) {
-				return Student.find()
+				return Patient.find()
 			}
 		},
 		header: {
@@ -129,109 +164,125 @@ const RootQuery = new GraphQLObjectType({
 const Mutation = new GraphQLObjectType({
 	name: "Mutation",
 	fields: {
-		createCourse: {
-			type: CourseType,
+		createMessage:{
+			type:MessageType,
+			args:{
+				description:{type:GraphQLString}
+			},
+			resolve(parent, args){
+				let message = new Message({
+					description:args.description
+				})
+				return message.save()
+			}
+		},
+		
+		createVitalSign: {
+			type: VitalSignType,
 			args: {
-				courseCode: { type: GraphQLString },
-				courseName: { type: GraphQLString },
-				section: { type: GraphQLString },
-				semester: { type: GraphQLString }
+				bodyTemp: { type: GraphQLString },
+				heartRate: { type: GraphQLString },
+				bloodPressure: { type: GraphQLString },
+				respiratoryRate: { type: GraphQLString }
 			},
 			resolve(parent, args) {
-				let course = new Course({
-					courseCode: args.courseCode,
-					courseName: args.courseName,
-					section: args.section,
-					semester: args.semester
+				let vitalSign = new VitalSign({
+					bodyTemp: args.bodyTemp,
+					heartRate: args.heartRate,
+					bloodPressure: args.bloodPressure,
+					respiratoryRate: args.respiratoryRate
 				})
-				return course.save()
+				return vitalSign.save()
 			}
 		},
-		updateCourse: {
-			type: CourseType,
+		updateVitalSign: {
+			type: VitalSignType,
 			args: {
-				courseId: { type: GraphQLString },
-				courseCode: { type: GraphQLString },
-				courseName: { type: GraphQLString },
-				section: { type: GraphQLString },
-				semester: { type: GraphQLString }
+				vitalSignId:{type: GraphQLString },
+				bodyTemp: { type: GraphQLString },
+				heartRate: { type: GraphQLString },
+				bloodPressure: { type: GraphQLString },
+				respiratoryRate: { type: GraphQLString }
 			},
 			async resolve(parent, args) {
-				const courseInDb = await Course.findById(args.courseId)
-				courseInDb.courseCode = args.courseCode
-				courseInDb.section = args.section
-				courseInDb.semester = args.semester
-				courseInDb.courseName = args.courseName
+				const vitalSignInDb = await VitalSign.findById(args.vitalSignId)
+				vitalSignInDb.bodyTemp = args.bodyTemp
+				vitalSignInDb.heartRate = args.heartRate
+				vitalSignInDb.bloodPressure = args.bloodPressure
+				vitalSignInDb.respiratoryRate = args.respiratoryRate
 
-				return await courseInDb.save()
+				return await vitalSignInDb.save()
 			}
 		},
-		deleteCourse: {
-			type: CourseType,
+
+		
+
+		deleteVitalSign: {
+			type: VitalSignType,
 			args: {
-				courseId: { type: new GraphQLNonNull(GraphQLString) }
+				vitalSignId: { type: new GraphQLNonNull(GraphQLString) }
 			},
 			async resolve(parent, args) {
-				const course = await Course.findByIdAndDelete(args.courseId)
+				const vitalSign = await VitalSign.findByIdAndDelete(args.vitalSignId)
 
-				const students = await Student.find({
-					"courses.course": args.courseId
+				const patients = await Patient.find({
+					"vitalSigns.vitalSign": args.vitalSignId
 				})
 
-				for (const student of students) {
-					;async (student) => {
-						const result = await Student.updateOne(
-							{ _id: student._id },
+				for (const patient of patients) {
+					;async (patient) => {
+						const result = await Patient.updateOne(
+							{ _id: patient._id },
 							{
 								$pull: {
-									courses: { course: args.courseId }
+									vitalSigns: { vitalSign: args.vitalSignId }
 								}
 							}
 						)
 					}
 				}
-				return course
+				return vitalSign
 			}
 		},
-		dropCourse: {
-			type: StudentType,
+		dropVitalSign: {
+			type: VitalSignType,
 			args: {
-				courseId: { type: new GraphQLNonNull(GraphQLString) },
-				studentId: { type: new GraphQLNonNull(GraphQLString) }
+				vitalSignId: { type: new GraphQLNonNull(GraphQLString) },
+				patientId: { type: new GraphQLNonNull(GraphQLString) }
 			},
 			async resolve(parent, args) {
-				const student = await Student.findOne({ userId: args.studentId })
-				await Course.findByIdAndUpdate(args.courseId, {
+				const patient = await Patient.findOne({ userId: args.patientId })
+				await VitalSign.findByIdAndUpdate(args.vitalSignId, {
 					$pull: {
-						students: { student: student._id }
+						patients: { patient: patient._id }
 					}
 				})
-				const result = await Student.updateOne(
-					{ userId: args.studentId },
+				const result = await Patient.updateOne(
+					{ userId: args.patientId },
 					{
 						$pull: {
-							courses: { course: args.courseId }
+							vitalSigns: { vitalSign: args.vitalSignId }
 						}
 					}
 				)
-				return student
+				return patient
 			}
 		},
-		pickCourse: {
-			type: StudentType,
+		assignVitalSign: {
+			type: PatientType,
 			args: {
-				courseId: { type: new GraphQLNonNull(GraphQLString) },
-				studentId: { type: new GraphQLNonNull(GraphQLString) }
+				vitalSignId: { type: new GraphQLNonNull(GraphQLString) },
+				patientId: { type: new GraphQLNonNull(GraphQLString) }
 			},
 			async resolve(parent, args) {
-				const student = await Student.findOne({ userId: args.studentId })
-				student.courses.push({ course: args.courseId })
-				result = await student.save()
+				const patient = await Patient.findOne({ userId: args.patientId })
+				patient.vitalSigns.push({ vitalSign: args.vitalSignId })
+				result = await patient.save()
 
-				const id = student._id
-				const course = await Course.findById(args.courseId)
-				course.students.push({ student: id })
-				await course.save()
+				const id = patient._id
+				const vitalSign = await VitalSign.findById(args.vitalSignId)
+				vitalSign.patients.push({ patient: id })
+				await vitalSign.save()
 
 				return result
 			}
@@ -242,15 +293,12 @@ const Mutation = new GraphQLObjectType({
 				email: { type: GraphQLString },
 				password: { type: GraphQLString },
 				role: { type: GraphQLString },
-				studentNumber: { type: GraphQLString },
+				patientNumber: { type: GraphQLString },
 				firstName: { type: GraphQLString },
 				lastName: { type: GraphQLString },
 				address: { type: GraphQLString },
 				city: { type: GraphQLString },
-				phoneNumber: { type: GraphQLString },
-				program: { type: GraphQLString },
-				gitHub: { type: GraphQLString },
-				linkedIn: { type: GraphQLString }
+				phoneNumber: { type: GraphQLString }
 			},
 			async resolve(parent, args) {
 				const userInDb = await User.findOne({ email: args.email })
@@ -274,21 +322,19 @@ const Mutation = new GraphQLObjectType({
 
 					user = await user.save()
 
-					if (args.role === "user") {
-						var student = new Student()
-						student.studentNumber = args.studentNumber
-						student.userId = user._id
-						student.email = args.email
-						student.firstName = args.firstName
-						student.lastName = args.lastName
-						student.address = args.address
-						student.city = args.city
-						student.phoneNumber = args.phoneNumber
-						student.program = args.program
-						student.gitHub = args.gitHub
-						student.linkedIn = args.linkedIn
+					if (args.role === "patient") {
+						var patient = new Patient()
+						patient.patientNumber = args.patientNumber
+						patient.userId = user._id
+						patient.email = args.email
+						patient.firstName = args.firstName
+						patient.lastName = args.lastName
+						patient.address = args.address
+						patient.city = args.city
+						patient.phoneNumber = args.phoneNumber
+				
 
-						await student.save()
+						await patient.save()
 					}
 
 					const payload = {
