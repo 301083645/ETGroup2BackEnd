@@ -119,6 +119,13 @@ const RootQuery = new GraphQLObjectType({
 				return Patient.findOne({ userId: args.id })
 			}
 		},
+		patientVitalSign: {
+			type: PatientType,
+			args: { id: { type: GraphQLString } },
+			resolve(parent, args) {
+				return Patient.findById(args.id)
+			}
+		},
 		message:{
 			type: MessageType,
 			args:{id:{type: GraphQLString}},
@@ -177,35 +184,22 @@ const Mutation = new GraphQLObjectType({
 			}
 		},
 		
-		createAndAssignVitalSign: {
+		createVitalSign: {
 			type: VitalSignType,
 			args: {
 				bodyTemp: { type: GraphQLString },
 				heartRate: { type: GraphQLString },
 				bloodPressure: { type: GraphQLString },
-				respiratoryRate: { type: GraphQLString },
-				patientId: { type: new GraphQLNonNull(GraphQLString)}
+				respiratoryRate: { type: GraphQLString }
 			},
-			async resolve(parent, args) {
+			resolve(parent, args) {
 				let vitalSign = new VitalSign({
 					bodyTemp: args.bodyTemp,
 					heartRate: args.heartRate,
 					bloodPressure: args.bloodPressure,
 					respiratoryRate: args.respiratoryRate
 				})
-				await vitalSign.save()
-
-				patientId = args.patientId
-				const patient = await Patient.findOne({ patientId })
-				patient.vitalSigns.push({ vitalSign })
-				await patient.save()
-
-				const id = patient._id
-				await vitalSign.patients.push(patient)
-				result = await vitalSign.save()
-				
-				return result
-
+				return vitalSign.save()
 			}
 		},
 		updateVitalSign: {
@@ -281,7 +275,25 @@ const Mutation = new GraphQLObjectType({
 				return patient
 			}
 		},
-		
+		assignVitalSign: {
+			type: PatientType,
+			args: {
+				vitalSignId: { type: new GraphQLNonNull(GraphQLString) },
+				patientId: { type: new GraphQLNonNull(GraphQLString) }
+			},
+			async resolve(parent, args) {
+				const patient = await Patient.findOne({ userId: args.patientId })
+				patient.vitalSigns.push({ vitalSign: args.vitalSignId })
+				result = await patient.save()
+
+				const id = patient._id
+				const vitalSign = await VitalSign.findById(args.vitalSignId)
+				vitalSign.patients.push({ patient: id })
+				await vitalSign.save()
+
+				return result
+			}
+		},
 		register: {
 			type: UserType,
 			args: {
