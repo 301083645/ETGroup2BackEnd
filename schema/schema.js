@@ -171,6 +171,30 @@ const RootQuery = new GraphQLObjectType({
 const Mutation = new GraphQLObjectType({
 	name: "Mutation",
 	fields: {
+		createAndSendMessage:{
+			type:MessageType,
+			args:{
+				description:{type:GraphQLString},
+				patientId: { type: new GraphQLNonNull(GraphQLString)}
+			},
+			async resolve(parent, args){
+				let message = new Message({
+					description:args.description
+				})
+				await message.save()
+
+				patientId = args.patientId
+				const patient = await Patient.findOne({ patientId })
+				patient.messages.push({ message })
+				await patient.save()
+
+				await message.patients.push({patient})
+				result = await message.save()
+				
+				return result
+			}
+		},
+
 		createMessage:{
 			type:MessageType,
 			args:{
