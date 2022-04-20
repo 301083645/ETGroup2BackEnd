@@ -68,7 +68,7 @@ const PatientType = new GraphQLObjectType({
 			}
 		},
 		messages:{
-			type: new GraphQLList(VitalSignType),
+			type: new GraphQLList(MessageType),
 			async resolve(parent, args) {
 				var messages = []
 				for (const messageInfo of parent.messages) {
