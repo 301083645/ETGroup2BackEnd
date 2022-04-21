@@ -48,7 +48,26 @@ const PatientSchema = new mongoose.Schema({
 				ref: "message"
 			}
 		}
-	]
+	],
+
+	alerts: [
+		{
+			alert: {
+			type: mongoose.Schema.Types.ObjectId,
+				ref: "alert"
+			}
+		}
+	],
+
+	surveys: [
+		{
+			survey: {
+				type: mongoose.Schema.Types.ObjectId,
+				ref: "survey"
+			}
+		}
+	],
+	
 })
 
 // Set the 'fullname' virtual property

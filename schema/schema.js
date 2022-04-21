@@ -3,6 +3,8 @@ const User = require("../model/user")
 const VitalSign = require("../model/vitalSign")
 const Patient = require("../model/patient")
 const Message = require("../model/message")
+const Alert = require("../model/alert")
+const Survey = require("../model/survey")
 const jwt = require("jsonwebtoken")
 const config = require("config")
 const bcrypt = require("bcryptjs/dist/bcrypt")
@@ -24,6 +26,16 @@ const MessageType = new GraphQLObjectType({
 			type:GraphQLString
 		},
 		description:{ type : GraphQLString}
+	})
+})
+
+const AlertType = new GraphQLObjectType({
+	name:"Alert",
+	fields:()=>({
+		id:{
+			type:GraphQLString
+		},
+		description:{type:GraphQLString}
 	})
 })
 
@@ -79,7 +91,36 @@ const PatientType = new GraphQLObjectType({
 				}
 				return messages
 			}
+		},
+
+		alerts:{
+			type: new GraphQLList(AlertType),
+			async resolve(parent, args) {
+				var alerts = []
+				for (const alertInfo of parent.alerts) {
+					const alert = await Alert.findById(alertInfo.alert)
+					if (alert != null) {
+						alerts.push(alert)
+					}
+				}
+				return alerts
+			}
+		},
+
+		surveys:{
+			type: new GraphQLList(SurveyType),
+			async resolve(parent, args) {
+				var surveys = []
+				for (const surveyInfo of parent.surveys) {
+					const survey = await Survey.findById(surveyInfo.survey)
+					if (survey != null) {
+						surveys.push(survey)
+					}
+				}
+				return alerts
+			}
 		}
+
 	})
 })
 
@@ -93,6 +134,40 @@ const VitalSignType = new GraphQLObjectType({
 		heartRate: { type: GraphQLString },
 		bloodPressure: { type: GraphQLString },
 		respiratoryRate: { type: GraphQLString },
+		patients: {
+			type: new GraphQLList(PatientType),
+			async resolve(parent, args) {
+				var patients = []
+				for (const patientInfo of parent.patients) {
+					const patient = await Patient.findById(patientInfo.patient)
+					if (patient != null) {
+						patients.push(patient)
+					}
+				}
+				return patients
+			}
+		}
+	})
+})
+
+const SurveyType = new GraphQLObjectType({
+	name: "Survey",
+	fields: () => ({
+		id: {
+			type: GraphQLString
+		},
+		question1: { type: GraphQLString },
+		answer1: { type: GraphQLString },
+		
+		question2: { type: GraphQLString },
+		answer2: { type: GraphQLString },
+		
+		question3: { type: GraphQLString },
+		answer3: { type: GraphQLString },
+
+		question4: { type: GraphQLString },
+		answer4: { type: GraphQLString },
+
 		patients: {
 			type: new GraphQLList(PatientType),
 			async resolve(parent, args) {
@@ -133,6 +208,20 @@ const RootQuery = new GraphQLObjectType({
 				return Message.findById(args.id)
 			}
 		},
+		survey:{
+			type: SurveyType,
+			args:{id:{type: GraphQLString}},
+			resolve(parent,args){
+				return Survey.findById(args.id)
+			}
+		},
+		alert:{
+			type: AlertType,
+			args: { id: { type: GraphQLString } },
+			resolve(parent, args) {
+				return Alert.findById(args.id)
+			}
+		},
 		vitalSign: {
 			type: VitalSignType,
 			args: { id: { type: GraphQLString } },
@@ -152,12 +241,25 @@ const RootQuery = new GraphQLObjectType({
 				return Message.find()
 			}
 		},
+		alerts:{
+			type: new GraphQLList(AlertType),
+			resolve(parent,args){
+				return Alert.find()
+			}
+		},
 		patients: {
 			type: new GraphQLList(PatientType),
 			resolve(parent, args) {
 				return Patient.find()
 			}
 		},
+		surveys:{
+			type: new GraphQLList(SurveyType),
+			resolve(parent,args){
+				return Survey.find()
+			}
+		},
+		
 		header: {
 			type: GraphQLString,
 			resolve(parent, args, context) {
@@ -171,6 +273,70 @@ const RootQuery = new GraphQLObjectType({
 const Mutation = new GraphQLObjectType({
 	name: "Mutation",
 	fields: {
+
+		createAndAssignSurvey:{
+			type:SurveyType,
+			args:{
+				question1:{type: GraphQLString},
+				answer1:{type: GraphQLString},
+				question2:{type: GraphQLString},
+				answer2:{type: GraphQLString},
+				question3:{type: GraphQLString},
+				answer3:{type: GraphQLString},
+				question4:{type: GraphQLString},
+				answer4:{type: GraphQLString},
+				patientId:{type : new GraphQLNonNull(GraphQLString)}
+			},
+			async resolve(patient, args){
+				let survey = new Survey({
+					question1:args.question1,
+					answer1:args.answer1,
+					question2:args.question2,
+					answer2:args.answer2,
+					question3:args.question3,
+					answer3:args.answer3,
+					question4:args.question4,
+					answer4:args.answer4,
+				})
+				await survey.save()
+
+				patientId = args.patientId
+				patient = await Patient.findOne({ patientId })
+				patient.surveys.push({ survey })
+				await patient.save()
+
+				await survey.patients.push({patient})
+				result = await survey.save()
+				
+				return result
+
+			}
+		},
+
+		createAndSendAlert:{
+			type: AlertType,
+			args:{
+				description:{type: GraphQLString},
+				patientId:{type : new GraphQLNonNull(GraphQLString)}
+			},
+			async resolve(patient, args){
+				let alert = new Alert({
+					description:args.description
+				})
+				await alert.save()
+
+				patientId = args.patientId
+				patient = await Patient.findOne({ patientId })
+				patient.alerts.push({ alert })
+				await patient.save()
+
+				await alert.patients.push({patient})
+				result = await alert.save()
+				
+				return result
+
+			}
+		},
 		createAndSendMessage:{
 			type:MessageType,
 			args:{
@@ -274,6 +440,7 @@ const Mutation = new GraphQLObjectType({
 				return vitalSign
 			}
 		},
+
 		dropVitalSign: {
 			type: VitalSignType,
 			args: {
