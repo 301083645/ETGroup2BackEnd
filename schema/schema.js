@@ -301,7 +301,7 @@ const Mutation = new GraphQLObjectType({
 				await survey.save()
 
 				patientId = args.patientId
-				patient = await Patient.findOne({ patientId })
+				patient = await Patient.findById( patientId )
 				patient.surveys.push({ survey })
 				await patient.save()
 
@@ -326,7 +326,7 @@ const Mutation = new GraphQLObjectType({
 				await alert.save()
 
 				patientId = args.patientId
-				patient = await Patient.findOne({ patientId })
+				patient = await Patient.findOne( {userId: patientId} )
 				patient.alerts.push({ alert })
 				await patient.save()
 
@@ -350,7 +350,7 @@ const Mutation = new GraphQLObjectType({
 				await message.save()
 
 				patientId = args.patientId
-				const patient = await Patient.findOne({ patientId })
+				const patient = await Patient.findById( patientId )
 				patient.messages.push({ message })
 				await patient.save()
 
@@ -380,7 +380,8 @@ const Mutation = new GraphQLObjectType({
 				await vitalSign.save()
 
 				patientId = args.patientId
-				const patient = await Patient.findOne({ patientId })
+				//const patient = await Patient.findOne({ patientId })
+				const patient = await Patient.findById( patientId)
 				patient.vitalSigns.push({ vitalSign })
 				await patient.save()
 
