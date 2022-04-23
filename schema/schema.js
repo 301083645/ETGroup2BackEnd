@@ -117,7 +117,7 @@ const PatientType = new GraphQLObjectType({
 						surveys.push(survey)
 					}
 				}
-				return alerts
+				return surveys
 			}
 		}
 
@@ -466,6 +466,28 @@ const Mutation = new GraphQLObjectType({
 				return patient
 			}
 		},
+
+		submitSurvey: {
+			type: PatientType,
+			args: {
+				userId: {type: GraphQLString },
+				answer1: { type: GraphQLString },
+				answer2: { type: GraphQLString },
+				answer3: { type: GraphQLString },
+				answer4: { type: GraphQLString }
+			},
+			async resolve(parent, args) {
+				const patientInDb = await Patient.findOne({userId: args.userId})
+				
+				patientInDb.surveys[0].answer1 = args.answer1
+				patientInDb.surveys[0].answer2 = args.answer2
+				patientInDb.surveys[0].answer3 = args.answer3
+				patientInDb.surveys[0].answer4 = args.answer4
+
+				return await patientInDb.save()
+			}
+		},
+
 		register: {
 			type: UserType,
 			args: {
