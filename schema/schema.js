@@ -468,23 +468,23 @@ const Mutation = new GraphQLObjectType({
 		},
 
 		submitSurvey: {
-			type: PatientType,
+			type: SurveyType,
 			args: {
-				userId: {type: GraphQLString },
+				surveyId: {type: GraphQLString },
 				answer1: { type: GraphQLString },
 				answer2: { type: GraphQLString },
 				answer3: { type: GraphQLString },
 				answer4: { type: GraphQLString }
 			},
 			async resolve(parent, args) {
-				const patientInDb = await Patient.findOne({userId: args.userId})
+				const surveyInDb = await Survey.findById( args.surveyId )
 				
-				patientInDb.surveys[0].answer1 = args.answer1
-				patientInDb.surveys[0].answer2 = args.answer2
-				patientInDb.surveys[0].answer3 = args.answer3
-				patientInDb.surveys[0].answer4 = args.answer4
+				surveyInDb.answer1 = args.answer1
+				surveyInDb.answer2 = args.answer2
+				surveyInDb.answer3 = args.answer3
+				surveyInDb.answer4 = args.answer4
 
-				return await patientInDb.save()
+				return await surveyInDb.save()
 			}
 		},
 
